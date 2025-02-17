@@ -1,0 +1,57 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tree Mapper</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head>
+<body>
+  <div id="auth-container">
+    <div id="auth-tabs">
+      <h1 class="header-title"> Tree Mapper</h1>
+      <img src="E:\icons\Leonardo_Phoenix_Bg.png" alt="Tree Mapper Icon" class="top-image">
+      <button id="register-tab-button" onclick="showRegister()">Register</button>
+      <button id="login-tab-button" onclick="showLogin()">Login</button>
+    </div>
+    <form id="register-form">
+      <h2>Register</h2>
+      <input type="text" id="register-username" placeholder="Username" required>
+      <input type="password" id="register-password" placeholder="Password" required>
+      <button type="submit">Register</button>
+    </form>
+    <form id="login-form">
+      <h2>Login</h2>
+      <input type="text" id="login-username" placeholder="Username" required>
+      <input type="password" id="login-password" placeholder="Password" required>
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <!-- Map Container (Initially hidden) -->
+  <div id="map-container" style="display: none;">
+    <div id="map"></div>
+    <div id="search-container">
+      <input type="text" id="search-input" placeholder="Search for TREES,Zone...">
+      <button id="search-button" onclick="search()">Search</button>
+    </div>
+    <div id="add-tree-ui">
+      <button id="add-tree-button" onclick="toggleAddTreeMode()">Add Tree</button>
+      <button id="add-zone-button" onclick="toggleAddZoneMode()">Add Zone</button>
+      <div id="tree-details" style="display:none">
+        <input type="text" id="tree-name" placeholder="Tree/Sector Name">
+        <button id="save-tree-button" onclick="saveTree()">Save</button>
+        <button id="cancel-tree-button" onclick="cancelAddTree()">Cancel</button>
+      </div>
+      <div id="zone-details" style="display:none">
+        <input type="text" id="zone-name" placeholder="Zone Name">
+        <button id="save-zone-button" onclick="saveZone()">Save Zone</button>
+        <button id="cancel-zone-button" onclick="cancelAddZone()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
