@@ -6,6 +6,92 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-analytics.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-database.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCLgpSekin2rP7iPlJTMTteeVy8SrRCq5c",
+      authDomain: "tree-mapper-72441.firebaseapp.com",
+      projectId: "tree-mapper-72441",
+      storageBucket: "tree-mapper-72441.firebasestorage.app",
+      messagingSenderId: "390512097821",
+      appId: "1:390512097821:web:f4ea1824f9742d2882e4f4",
+      measurementId: "G-NQH16GLXSE"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth();
+    const database = getDatabase();
+
+    // Function to register a new user
+    document.getElementById('register-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const username = document.getElementById('register-username').value;
+      const password = document.getElementById('register-password').value;
+      registerUser(username, password);
+    });
+
+    function registerUser(username, password) {
+      createUserWithEmailAndPassword(auth, username + "@example.com", password) // Temporary email for Firebase
+        .then((userCredential) => {
+          const userId = userCredential.user.uid;
+          // Store user data in the database
+          set(ref(database, 'users/' + userId), {
+            username: username,
+          });
+          alert('Registration successful! Please login.');
+          showLogin();
+        })
+        .catch((error) => {
+          console.error(error);
+          alert(error.message);
+        });
+    }
+
+    // Function to log in an existing user
+    document.getElementById('login-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+      loginUser(username + "@example.com", password); // Temporary email for Firebase
+    });
+
+    function loginUser(username, password) {
+      signInWithEmailAndPassword(auth, username, password)
+        .then((userCredential) => {
+          const userId = userCredential.user.uid;
+          // Retrieve user data from the database
+          get(ref(database, 'users/' + userId)).then((snapshot) => {
+            if (snapshot.exists()) {
+              const userData = snapshot.val();
+              alert('Login successful! User data: ' + JSON.stringify(userData));
+              document.getElementById('auth-container').style.display = 'none';
+              document.getElementById('map-container').style.display = 'block';
+              initializeMap(); // Call your map initialization function here
+            } else {
+              alert('No user data found.');
+            }
+          });
+        })
+        .catch((error) => {
+          console.error(error);
+          alert(error.message);
+        });
+    }
+
+    // Call your existing map initialization function here
+    function initializeMap() {
+      // Your existing map initialization logic
+    }
+  </script>
 </head>
 <body>
   <div id="auth-container">
@@ -33,7 +119,7 @@
   <div id="map-container" style="display: none;">
     <div id="map"></div>
     <div id="search-container">
-      <input type="text" id="search-input" placeholder="Search for TREES,Zone...">
+      <input type="text" id="search-input" placeholder="Search for TREES, Zone...">
       <button id="search-button" onclick="search()">Search</button>
     </div>
     <div id="add-tree-ui">
