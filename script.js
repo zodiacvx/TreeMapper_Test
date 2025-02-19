@@ -8,7 +8,7 @@ let zonePoints = [];
 
 // Define a custom icon for the user's location
 const userLocationIcon = L.icon({
-  iconUrl: 'https://raw.githubusercontent.com/zodiacvx/TreeMapper_Test/refs/heads/main/files/19406483-removebg-preview.png', // Replace with your own red marker image URL
+  iconUrl: 'https://raw.githubusercontent.com/zodiacvx/TreeMapper_Test/refs/heads/main/files/red_location_marker_icon_standin_2-removebg-preview.png', // Replace with your own red marker image URL
   iconSize: [25, 41], // Size of the icon
   iconAnchor: [12, 41], // Point of the icon which will correspond to marker's location
   popupAnchor: [1, -34], // Point from which the popup should open relative to the iconAnchor
