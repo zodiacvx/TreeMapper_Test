@@ -1,10 +1,16 @@
-let users = [];
-let currentUser = null;
+// Import Firebase functions
+import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-database.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+
 let map, tempMarker, tempPolygon;
 let addTreeMode = false;
 let addZoneMode = false;
 let markers = [];
 let zonePoints = [];
+
+// Initialize Firebase
+const database = getDatabase();
+const auth = getAuth();
 
 // Define a custom icon for the user's location
 const userLocationIcon = L.icon({
@@ -14,80 +20,101 @@ const userLocationIcon = L.icon({
   popupAnchor: [1, -34], // Point from which the popup should open relative to the iconAnchor
 });
 
+// Show registration form
 function showRegister() {
   document.getElementById('register-form').style.display = 'block';
   document.getElementById('login-form').style.display = 'none';
 }
 
+// Show login form
 function showLogin() {
   document.getElementById('login-form').style.display = 'block';
   document.getElementById('register-form').style.display = 'none';
 }
 
+// Handle registration
 document.getElementById('register-form').addEventListener('submit', (event) => {
   event.preventDefault();
-  const username = document.getElementById('register-username').value;
+  const email = document.getElementById('register-username').value;
   const password = document.getElementById('register-password').value;
-  if (!username || !password) {
-    alert('Please enter a username and password');
-    return;
-  }
-  users.push({ username, password });
-  alert('Registration successful! Please login.');
-  showLogin();
+
+  createUserWithEmailAndPassword(auth, email, password)
+    .then((userCredential) => {
+      alert('Registration successful! Please login.');
+      showLogin();
+    })
+    .catch((error) => {
+      alert(error.message);
+    });
 });
 
+// Handle login
 document.getElementById('login-form').addEventListener('submit', (event) => {
   event.preventDefault();
-  const username = document.getElementById('login-username').value;
+  const email = document.getElementById('login-username').value;
   const password = document.getElementById('login-password').value;
-  const user = users.find((user) => user.username === username && user.password === password);
-  if (!user) {
-    alert('Invalid username or password');
-    return;
-  }
-  currentUser = user;
-  alert('Login successful!');
-  document.getElementById('auth-container').style.display = 'none';
-  document.getElementById('map-container').style.display = 'block';
-  initializeMap();
+
+  signInWithEmailAndPassword(auth, email, password)
+    .then((userCredential) => {
+      alert('Login successful!');
+      document.getElementById('auth-container').style.display = 'none';
+      document.getElementById('map-container').style.display = 'block';
+      initializeMap(userCredential.user.uid); // Pass the user's UID
+    })
+    .catch((error) => {
+      alert(error.message);
+    });
 });
 
-function initializeMap() {
-  // Create a map centered at a default location
+// Initialize the map
+function initializeMap(userId) {
   map = L.map('map').setView([7.8731, 80.7718], 8);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  // Get the user's current location
+  // Get user's current location
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const userLocation = [position.coords.latitude, position.coords.longitude];
-        map.setView(userLocation, 15); // Set the map view to the user's location
-        L.marker(userLocation, { icon: userLocationIcon }).addTo(map).bindPopup('You are here!').openPopup(); // Add a red marker for the user's location
+        map.setView(userLocation, 15);
+        L.marker(userLocation, { icon: userLocationIcon }).addTo(map).bindPopup('You are here!').openPopup();
       },
       (error) => {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            alert('User denied the request for Geolocation. Please allow location access.');
-            break;
-          case error.POSITION_UNAVAILABLE:
-            alert('Location information is unavailable.');
-            break;
-          case error.TIMEOUT:
-            alert('The request to get user location timed out.');
-            break;
-          case error.UNKNOWN_ERROR:
-            alert('An unknown error occurred.');
-            break;
-        }
+        alert('Unable to retrieve location: ' + error.message);
       }
     );
-  } else {
-    alert('Geolocation is not supported by this browser.');
   }
 
+  // Load user-specific data
+  loadUserData(userId);
+
   map.on('click', onMapClick);
+}
+
+// Load user-specific trees and zones
+function loadUserData(userId) {
+  const userRef = ref(database, 'users/' + userId);
+  get(userRef).then((snapshot) => {
+    if (snapshot.exists()) {
+      const userData = snapshot.val();
+      // Load trees
+      if (userData.trees) {
+        for (const tree of userData.trees) {
+          const marker = L.marker([tree.lat, tree.lng]).addTo(map);
+          marker.bindPopup(`<b>${tree.name}</b>`).openPopup();
+          markers.push({ name: tree.name, marker, type: 'tree' });
+        }
+      }
+      // Load zones
+      if (userData.zones) {
+        for (const zone of userData.zones) {
+          const polygon = L.polygon(zone.points, { color: 'green' }).addTo(map);
+          polygon.bindPopup(`<b>${zone.name}</b>`);
+          markers.push({ name: zone.name, marker: polygon, type: 'zone' });
+        }
+      }
+    }
+  });
 }
 
 function onMapClick(e) {
@@ -120,11 +147,24 @@ function toggleAddZoneMode() {
 function saveTree() {
   const treeName = document.getElementById('tree-name').value;
   if (treeName && tempMarker) {
-    tempMarker.bindPopup(`<b>${treeName}</b>`).openPopup();
-    markers.push({ name: treeName, marker: tempMarker, type: 'tree' });
-    tempMarker = null;
-    document.getElementById('tree-details').style.display = 'none';
-    addTreeMode = false;
+    const userId = auth.currentUser.uid; // Get current user's UID
+    const treeData = {
+      name: treeName,
+      lat: tempMarker.getLatLng().lat,
+      lng: tempMarker.getLatLng().lng
+    };
+    
+    // Save tree to Firebase
+    const userRef = ref(database, 'users/' + userId + '/trees/' + treeName);
+    set(userRef, treeData).then(() => {
+      tempMarker.bindPopup(`<b>${treeName}</b>`).openPopup();
+      markers.push({ name: treeName, marker: tempMarker, type: 'tree' });
+      tempMarker = null;
+      document.getElementById('tree-details').style.display = 'none';
+      addTreeMode = false;
+    }).catch((error) => {
+      alert('Error saving tree: ' + error.message);
+    });
   } else {
     alert('Enter a tree name and place a marker.');
   }
@@ -136,10 +176,23 @@ function saveZone() {
     const newPolygon = L.polygon(zonePoints, { color: 'green' }).addTo(map);
     newPolygon.bindPopup(`<b>${zoneName}</b>`);
     markers.push({ name: zoneName, marker: newPolygon, type: 'zone' });
-    zonePoints = [];
-    tempPolygon = null;
-    document.getElementById('zone-details').style.display = 'none';
-    addZoneMode = false;
+    
+    const userId = auth.currentUser.uid; // Get current user's UID
+    const zoneData = {
+      name: zoneName,
+      points: zonePoints.map(point => [point.lat, point.lng])
+    };
+    
+    // Save zone to Firebase
+    const userRef = ref(database, 'users/' + userId + '/zones/' + zoneName);
+    set(userRef, zoneData).then(() => {
+      zonePoints = [];
+      tempPolygon = null;
+      document.getElementById('zone-details').style.display = 'none';
+      addZoneMode = false;
+    }).catch((error) => {
+      alert('Error saving zone: ' + error.message);
+    });
   } else {
     alert('Enter a zone name and select at least 3 points.');
   }
