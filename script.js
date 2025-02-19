@@ -46,8 +46,26 @@ document.getElementById('login-form').addEventListener('submit', (event) => {
 });
 
 function initializeMap() {
+  // Create a map centered at a default location
   map = L.map('map').setView([7.8731, 80.7718], 8);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+  // Get the user's current location
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLocation = [position.coords.latitude, position.coords.longitude];
+        map.setView(userLocation, 15); // Set the map view to the user's location
+        L.marker(userLocation).addTo(map).bindPopup('You are here!').openPopup(); // Optional: Add a marker for the user's location
+      },
+      () => {
+        alert('Unable to retrieve your location.');
+      }
+    );
+  } else {
+    alert('Geolocation is not supported by this browser.');
+  }
+
   map.on('click', onMapClick);
 }
 
