@@ -6,6 +6,14 @@ let addZoneMode = false;
 let markers = [];
 let zonePoints = [];
 
+// Define a custom icon for the user's location
+const userLocationIcon = L.icon({
+  iconUrl: 'https://example.com/red-marker.png', // Replace with your own red marker image URL
+  iconSize: [25, 41], // Size of the icon
+  iconAnchor: [12, 41], // Point of the icon which will correspond to marker's location
+  popupAnchor: [1, -34], // Point from which the popup should open relative to the iconAnchor
+});
+
 function showRegister() {
   document.getElementById('register-form').style.display = 'block';
   document.getElementById('login-form').style.display = 'none';
@@ -56,10 +64,23 @@ function initializeMap() {
       (position) => {
         const userLocation = [position.coords.latitude, position.coords.longitude];
         map.setView(userLocation, 15); // Set the map view to the user's location
-        L.marker(userLocation).addTo(map).bindPopup('You are here!').openPopup(); // Optional: Add a marker for the user's location
+        L.marker(userLocation, { icon: userLocationIcon }).addTo(map).bindPopup('You are here!').openPopup(); // Add a red marker for the user's location
       },
-      () => {
-        alert('Unable to retrieve your location.');
+      (error) => {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            alert('User denied the request for Geolocation. Please allow location access.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            alert('Location information is unavailable.');
+            break;
+          case error.TIMEOUT:
+            alert('The request to get user location timed out.');
+            break;
+          case error.UNKNOWN_ERROR:
+            alert('An unknown error occurred.');
+            break;
+        }
       }
     );
   } else {
