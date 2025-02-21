@@ -1,25 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Import Firebase functions
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-database.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-
-  // Firebase Configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyCLgpSekin2rP7iPlJTMTteeVy8SrRCq5c",
-    authDomain: "tree-mapper-72441.firebaseapp.com",
-    projectId: "tree-mapper-72441",
-    storageBucket: "tree-mapper-72441.appspot.com",
-    messagingSenderId: "390512097821",
-    appId: "1:390512097821:web:f4ea1824f9742d2882e4f4",
-    measurementId: "G-NQH16GLXSE"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const database = getDatabase(app);
-  const auth = getAuth(app);
-
   let map, tempMarker, tempPolygon;
   let addTreeMode = false;
   let addZoneMode = false;
@@ -38,42 +17,32 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("register-form").style.display = "none";
   };
 
-  // Handle registration
+  // Handle registration (mock implementation)
   document.getElementById("register-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const email = document.getElementById("register-username").value;
     const password = document.getElementById("register-password").value;
 
-    createUserWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        alert("Registration successful! Please login.");
-        showLogin();
-      })
-      .catch((error) => {
-        alert(error.message);
-      });
+    // Here you would normally handle registration logic (e.g., send data to your server)
+    alert("Registration successful! Please login.");
+    showLogin();
   });
 
-  // Handle login
+  // Handle login (mock implementation)
   document.getElementById("login-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const email = document.getElementById("login-username").value;
     const password = document.getElementById("login-password").value;
 
-    signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        alert("Login successful!");
-        document.getElementById("auth-container").style.display = "none";
-        document.getElementById("map-container").style.display = "block";
-        initializeMap(userCredential.user.uid);
-      })
-      .catch((error) => {
-        alert(error.message);
-      });
+    // Here you would normally handle login logic (e.g., validate credentials)
+    alert("Login successful!");
+    document.getElementById("auth-container").style.display = "none";
+    document.getElementById("map-container").style.display = "block";
+    initializeMap(); // Call your map initialization function here
   });
 
   // Initialize the map
-  function initializeMap(userId) {
+  function initializeMap() {
     map = L.map("map").setView([7.8731, 80.7718], 8);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
@@ -89,23 +58,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       );
     }
-    loadUserData(userId);
+    
+    // Load user data logic can be implemented here
+    // loadUserData(userId); // Uncomment and implement if needed
   }
 
-  // Load user-specific trees and zones
+  // Function to load user-specific trees and zones (mock implementation)
   function loadUserData(userId) {
-    const userRef = ref(database, "users/" + userId);
-    get(userRef).then((snapshot) => {
-      if (snapshot.exists()) {
-        const userData = snapshot.val();
-        if (userData.trees) {
-          for (const tree of userData.trees) {
-            const marker = L.marker([tree.lat, tree.lng]).addTo(map);
-            marker.bindPopup(`<b>${tree.name}</b>`).openPopup();
-            markers.push({ name: tree.name, marker, type: "tree" });
-          }
-        }
-      }
-    });
+    // This function would normally retrieve user data from your server
+    // and display markers for trees and zones on the map
   }
 });
