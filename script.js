@@ -1,9 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
-  let map;
-  let markers = [];
-  let zonePolygons = [];
+  let map, tempMarker, tempPolygon;
   let addTreeMode = false;
   let addZoneMode = false;
+  let markers = [];
+  let zonePoints = [];
 
   // Show registration form
   window.showRegister = function () {
@@ -17,21 +17,23 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("register-form").style.display = "none";
   };
 
-  // Handle registration (mock implementation)
+  // Handle registration
   document.getElementById("register-form").addEventListener("submit", (event) => {
     event.preventDefault();
-    const email = document.getElementById("register-username").value;
+    const username = document.getElementById("register-username").value;
     const password = document.getElementById("register-password").value;
-    alert("Registration successful! Please login.");
+
+    alert(`User Registered: ${username}`);
     showLogin();
   });
 
-  // Handle login (mock implementation)
+  // Handle login
   document.getElementById("login-form").addEventListener("submit", (event) => {
     event.preventDefault();
-    const email = document.getElementById("login-username").value;
+    const username = document.getElementById("login-username").value;
     const password = document.getElementById("login-password").value;
-    alert("Login successful!");
+
+    alert(`User Logged In: ${username}`);
     document.getElementById("auth-container").style.display = "none";
     document.getElementById("map-container").style.display = "block";
     initializeMap();
@@ -54,73 +56,101 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       );
     }
-
-    map.on("click", (e) => {
-      if (addTreeMode) {
-        addTree(e.latlng);
-      } else if (addZoneMode) {
-        addZone(e.latlng);
-      }
-    });
   }
 
-  // Function to add a tree marker
-  function addTree(location) {
-    const treeName = prompt("Enter tree name:");
-    if (treeName) {
-      const marker = L.marker(location).addTo(map);
-      marker.bindPopup(`<b>${treeName}</b>`).openPopup();
-      markers.push({ name: treeName, marker });
-    }
-  }
-
-  // Function to add a zone
-  function addZone(location) {
-    if (zonePolygons.length === 0 || zonePolygons[zonePolygons.length - 1].getLatLngs().length >= 3) {
-      const polygon = L.polygon([location]).addTo(map);
-      zonePolygons.push(polygon);
-      polygon.bindPopup("Click to complete this zone").openPopup();
-      
-      // Complete the zone on the next click
-      map.once("click", (e) => {
-        polygon.addLatLng(e.latlng);
-        polygon.bindPopup("Zone completed!").openPopup();
-      });
-    } else {
-      zonePolygons[zonePolygons.length - 1].addLatLng(location);
-    }
-  }
-
-  // Function to search for a tree or zone
-  window.search = function () {
-    const searchTerm = document.getElementById("search-input").value.toLowerCase();
-    const foundMarker = markers.find(marker => marker.name.toLowerCase() === searchTerm);
-    const foundZone = zonePolygons.find(polygon => polygon.getPopup() && polygon.getPopup().getContent().toLowerCase().includes(searchTerm));
-
-    if (foundMarker) {
-      map.setView(foundMarker.marker.getLatLng(), 15);
-      foundMarker.marker.openPopup();
-    } else if (foundZone) {
-      const latLngs = foundZone.getLatLngs()[0];
-      const bounds = L.latLngBounds(latLngs);
-      map.fitBounds(bounds);
-      foundZone.openPopup();
-    } else {
-      alert("No matching trees or zones found.");
-    }
-  };
-
-  // Function to toggle add tree mode
+  // Toggle Add Tree Mode
   window.toggleAddTreeMode = function () {
     addTreeMode = !addTreeMode;
-    addZoneMode = false;
-    alert(addTreeMode ? "Add Tree mode activated. Click on the map to add a tree." : "Add Tree mode deactivated.");
+    document.getElementById("tree-details").style.display = addTreeMode ? "block" : "none";
   };
 
-  // Function to toggle add zone mode
+  // Save Tree
+  window.saveTree = function () {
+    const treeName = document.getElementById("tree-name").value;
+    if (tempMarker) {
+      const latLng = tempMarker.getLatLng();
+      const marker = L.marker(latLng).addTo(map);
+      marker.bindPopup(`<b>${treeName}</b>`).openPopup();
+      markers.push({ name: treeName, marker, type: "tree" });
+      tempMarker.remove(); // Remove tempMarker after saving
+      tempMarker = null; // Reset tempMarker
+      document.getElementById("tree-name").value = ""; // Clear input
+      toggleAddTreeMode(); // Hide the input
+    } else {
+      alert("Please select a location on the map to add the tree.");
+    }
+  };
+
+  // Cancel adding tree
+  window.cancelAddTree = function () {
+    if (tempMarker) {
+      tempMarker.remove(); // Remove the temporary marker if it exists
+      tempMarker = null;
+    }
+    toggleAddTreeMode(); // Hide the input
+  };
+
+  // Toggle Add Zone Mode
   window.toggleAddZoneMode = function () {
     addZoneMode = !addZoneMode;
-    addTreeMode = false;
-    alert(addZoneMode ? "Add Zone mode activated. Click on the map to add a zone." : "Add Zone mode deactivated.");
+    document.getElementById("zone-details").style.display = addZoneMode ? "block" : "none";
+
+    // Enable drawing mode for zone
+    if (addZoneMode) {
+      map.on("click", addZonePoint);
+    } else {
+      map.off("click", addZonePoint);
+      if (tempPolygon) {
+        tempPolygon.remove(); // Remove the temporary polygon if exists
+        tempPolygon = null;
+      }
+      zonePoints = []; // Clear zone points
+    }
+  };
+
+  // Add a point to the zone
+  function addZonePoint(e) {
+    const latLng = e.latlng;
+    zonePoints.push(latLng);
+    if (tempPolygon) {
+      tempPolygon.remove(); // Remove previous polygon
+    }
+    tempPolygon = L.polygon(zonePoints).addTo(map);
+  }
+
+  // Save Zone
+  window.saveZone = function () {
+    const zoneName = document.getElementById("zone-name").value;
+    if (zonePoints.length > 0) {
+      tempPolygon.bindPopup(`<b>${zoneName}</b>`).openPopup();
+      // Add your code here to save the zone (e.g., to your database)
+      document.getElementById("zone-name").value = ""; // Clear input
+      toggleAddZoneMode(); // Hide the input
+    } else {
+      alert("Please select points on the map to create the zone.");
+    }
+  };
+
+  // Cancel adding zone
+  window.cancelAddZone = function () {
+    if (tempPolygon) {
+      tempPolygon.remove(); // Remove the temporary polygon if it exists
+      tempPolygon = null;
+    }
+    toggleAddZoneMode(); // Hide the input
+  };
+
+  // Search functionality
+  window.search = function () {
+    const query = document.getElementById("search-input").value.toLowerCase();
+    const foundMarkers = markers.filter(marker => marker.name.toLowerCase().includes(query));
+
+    if (foundMarkers.length > 0) {
+      const marker = foundMarkers[0].marker; // Zoom to the first found marker
+      map.setView(marker.getLatLng(), 15);
+      marker.openPopup();
+    } else {
+      alert("No results found.");
+    }
   };
 });
